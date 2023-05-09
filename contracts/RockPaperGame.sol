@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+enum Element {
+    BadElement,
+    Rock,
+    Paper,
+    Scissors
+}
+
 contract RockPaperGame {
-    enum Element {
-        BadElement,
-        Rock,
-        Paper,
-        Scissors
-    }
 
     event moveCommited(bytes32 _hashedMove, uint time);
     event moveRevealed(address who, Element move, uint time);
@@ -24,7 +25,7 @@ contract RockPaperGame {
     }
 
     // function, where input - hashed bytes32, which includes secret word, sender and his move
-    function commitMove(bytes32 _hashedMove) external gameIsRelevant() {
+    function commitMove(bytes32 _hashedMove) external gameIsRelevant {
         require(elements[msg.sender] == bytes32(0), "Move is already commited!");
         require(participants.length < 2, "Game is full of participants!");
 
@@ -34,22 +35,7 @@ contract RockPaperGame {
         emit moveCommited(_hashedMove, block.timestamp);
     }
 
-    // function, created for testing, is not used for commit/reveal pattern
-    function commitMove(Element _move, string memory _secret) external gameIsRelevant() {
-        bytes32 _hashedMove = keccak256(abi.encodePacked(_move, _secret, msg.sender));
-
-        require(_move != Element.BadElement, "bad element type!");
-
-        require(elements[msg.sender] == bytes32(0), "Move is already commited!");
-        require(participants.length < 2, "Game is full of participants!");
-
-        participants.push(msg.sender);
-        elements[msg.sender] = _hashedMove;
-
-        emit moveCommited(_hashedMove, block.timestamp);
-    }
-
-    function revealMove(Element _move, string memory _secret) external {
+    function revealMove(Element _move, string memory _secret) external gameIsRelevant {
         require(gameStopped, "Wait for game stop!!");
 
         bytes32 hashedMove = keccak256(abi.encodePacked(_move, _secret, msg.sender));
@@ -81,22 +67,5 @@ contract RockPaperGame {
 
 
         return [move1, move2];
-    }
-
-    function getWinner() public view returns(address){
-        Element[2] memory result = getResult();
-
-        if (result[0] == result[1]) {
-            return address(0);
-        }
-
-        if (result[0] == Element.Rock && result[1] == Element.Paper ||
-        result[0] == Element.Paper && result[1] == Element.Scissors ||
-        result[0] == Element.Scissors && result[1] == Element.Rock) {
-
-            return participants[1];
-        } else {
-            return participants[0];
-        }
     }
 }
