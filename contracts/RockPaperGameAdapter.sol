@@ -58,7 +58,6 @@ contract RockPaperGameAdapter {
         if (result[0] == 1 && result[1] == 2 ||
         result[0] == 2 && result[1] == 3 ||
         result[0] == 3 && result[1] == 1) {
-
             return participants[1];
         } else {
             return participants[0];
