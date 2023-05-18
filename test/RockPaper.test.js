@@ -18,6 +18,39 @@ describe("RockPaperGame", function () {
 	expect(rockPaperGame.address).to.be.properAddress;
   });
 
+  it("Correct emit moveCommited event", async function () {
+	await expect(
+		rockPaperGame.connect(acc1).callCommitMove(1, 1)
+	).to.emit(rockPaperGame, "moveCommited");
+  });
+  
+  it("Correct emit moveRevealed event", async function () {
+	await rockPaperGame.connect(acc1).callCommitMove(1, 1);
+	await rockPaperGame.connect(acc2).callCommitMove(2, 2);
+	await rockPaperGame.stopGame();
+
+	const tx = await rockPaperGame.connect(acc1).revealMove(1,1);
+    const receipt = await tx.wait();
+
+    const blockTimestamp = (await ethers.provider.getBlock(receipt.blockNumber)).timestamp;
+    expect(receipt.events[0]).to.emit(rockPaperGame, "moveRevealed")
+	.withArgs(acc1.address, 1, blockTimestamp);
+
+  });
+
+  it("Correct emit gameEnded event", async function () {
+	await rockPaperGame.connect(acc1).callCommitMove(1, 1);
+	await rockPaperGame.connect(acc2).callCommitMove(2, 2);
+	const tx = await rockPaperGame.stopGame();
+
+    const receipt = await tx.wait();
+
+    const blockTimestamp = (await ethers.provider.getBlock(receipt.blockNumber)).timestamp;
+    expect(receipt.events[0]).to.emit(rockPaperGame, "gameEnded")
+	.withArgs(acc1.address, 1, rockPaperGame.address);
+  });
+
+
   it("Correct getParticipants", async function () {
 	await rockPaperGame.connect(acc1).callCommitMove(1, 1);
 	await rockPaperGame.connect(acc2).callCommitMove(2, 2);
@@ -39,7 +72,15 @@ describe("RockPaperGame", function () {
   it("Correct revealMove", async function () {
 	await rockPaperGame.connect(acc2).callCommitMove(2, 2);
 	await rockPaperGame.connect(acc1).callCommitMove(1, 1);
+
+	await expect(
+		rockPaperGame.connect(acc2).revealMove(2, 2)
+	).to.be.revertedWith("Wait for game stop!!");
 	await rockPaperGame.stopGame();
+
+	await expect(
+		rockPaperGame.connect(acc2).revealMove(1337, 1337)
+	).to.be.revertedWith("Wrong reveal proof!");
 	await rockPaperGame.connect(acc2).revealMove(2, 2);
 	await rockPaperGame.connect(acc1).revealMove(1, 1);
 
